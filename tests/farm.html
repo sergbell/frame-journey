@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>farm test</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Extra+Condensed:wght@600;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Handjet:wght@400;600&display=swap">
+<style>body{margin:0;background:#111;color:#ccc;font:12px monospace}canvas{width:640px}</style>
+<pre id="log"></pre><canvas id="c" width="1280" height="720"></canvas>
+<script src="../js/00-util.js"></script><script src="../js/01-charts.js"></script><script src="../js/10-film.js"></script><script src="../js/20-farm.js"></script>
+<script>
+const L=(...a)=>document.getElementById('log').textContent+=a.join(' ')+'\n';
+(async()=>{
+  const t0=performance.now();
+  let firstSeg=null;
+  FJ.asset.on('segment', e=>{ if(firstSeg==null){firstSeg=performance.now()-t0;} });
+  const a = await FJ.farm.start();
+  const res={mode:a.mode, codec:a.codec, profile:a.profile, hw:a.hw, farmFps:a.farmFps.toFixed(1), totalS:((a.finishedAt-a.startedAt)/1000).toFixed(1), firstSegMs:Math.round(firstSeg), rungs:[]};
+  for (let r=0;r<5;r++){
+    const segs=a.segs[r];
+    res.rungs.push({name:a.ladder[r].name, target:a.ladder[r].kbps, avg:Math.round(a.avgKbps(r)), peak:Math.round(a.peakKbps(r)), ready:a.readySegs[r], allKeyStart:segs.every(s=>s.startsWithKey), extraKeys:segs.reduce((n,s)=>n+s.keys-1,0), dc:!!a.decoderConfig[r], dcCodec:a.decoderConfig[r]&&a.decoderConfig[r].codec, desc:a.decoderConfig[r]&&a.decoderConfig[r].description&&a.decoderConfig[r].description.byteLength});
+  }
+  // per-shot bitrate for rung 1 (540p)
+  const per={};
+  for(const s of FJ.film.shots){ let b=0; for(let i=s.f0;i<s.f1;i++) b+=a.frames[1][i].size; per[s.id]=Math.round(b*8/((s.f1-s.f0)/24)/1000); }
+  res.shot540=per;
+  // decode test: decode segment 10 of rung 2, draw last frame
+  const dc=a.decoderConfig[2]; let n=0; const cx=document.getElementById('c').getContext('2d');
+  const dec=new VideoDecoder({output:f=>{cx.drawImage(f,0,0,1280,720);f.close();n++},error:e=>L('dec err',e.message)});
+  dec.configure(dc);
+  for(let i=10*48;i<11*48;i++){const f=a.frames[2][i]; dec.decode(new EncodedVideoChunk({type:f.key?'key':'delta',timestamp:f.ts,duration:f.dur,data:f.data}));}
+  await dec.flush(); res.decoded=n;
+  window.RESULT=res; L(JSON.stringify(res,null,1));
+})().catch(e=>{window.RESULT={err:e.message,stack:e.stack}; L('ERR',e.message,e.stack)});
+</script>

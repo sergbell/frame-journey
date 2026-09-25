@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Путь кадра</title>
+<meta name="description" content="Как онлайн-кинотеатр доставляет кадр от мастер-файла студии до экрана телевизора: браузер сам кодирует, упаковывает и показывает фильм, а сеть и CDN моделируются.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317181a'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23ff4d3d'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Extra+Condensed:wght@600;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="strip">
+  <div class="strip__in">
+    <a class="strip__brand" href="#top"><span class="tally on" aria-hidden="true"></span>Путь кадра</a>
+    <nav class="path" id="path" aria-label="Главы">
+      <a href="#master">Мастер</a>
+      <a href="#shots">Планы</a>
+      <a href="#codec">Кодек</a>
+      <a href="#ladder">Лесенка</a>
+      <a href="#pack">Упаковка</a>
+      <a href="#cdn">CDN</a>
+      <a href="#player">Плеер</a>
+      <a href="#tv">ТВ</a>
+      <a href="#live">Эфир</a>
+      <a href="#scale">Масштаб</a>
+    </nav>
+    <div class="strip__stat" id="stripStat">
+      <span>ферма <b id="stFarm">0 %</b></span>
+      <span class="opt">кодек <b id="stCodec">—</b></span>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ================================================================ -->
+<section class="hero wrap" id="hero" aria-labelledby="h-hero">
+  <div class="hero__title">
+    <div class="eyebrow"><span class="tally on" aria-hidden="true"></span>Онлайн‑кинотеатр изнутри · всё происходит в&nbsp;вашем браузере</div>
+    <div class="hero__top">
+      <h1 id="h-hero">Путь кадра</h1>
+      <p class="lead">Эта страница — маленький онлайн‑кинотеатр. Ваш браузер только что снял короткометражку «Восемь планов», закодировал её в&nbsp;пять качеств и&nbsp;смотрит её через модель сети. Кадры, байты, ключевые кадры и&nbsp;артефакты сжатия здесь настоящие. Моделируются только сеть и&nbsp;CDN&nbsp;— чтобы их можно было ломать.</p>
+    </div>
+    <div class="truth" aria-label="Что на странице настоящее, а что модель">
+      <span class="truth__k">настоящее</span>
+      <span>рендер кадров</span><span>кодирование H.264</span><span>сегменты и&nbsp;байты</span><span>fMP4 и&nbsp;шифрование cbcs</span><span>декодирование</span><span>PSNR</span>
+      <span class="truth__k truth__k--m">модель</span>
+      <span class="m">сеть</span><span class="m">CDN</span><span class="m">лицензии DRM</span><span class="m">миллионы зрителей</span>
+    </div>
+  </div>
+
+  <div class="theatre" id="fig-hero">
+    <div class="stack">
+      <div class="monitor">
+        <div class="monitor__screen" id="heroScreen">
+          <canvas id="heroCanvas" width="1280" height="720" aria-label="Плеер: фильм «Восемь планов»"></canvas>
+          <div class="hud">
+            <div class="hud__tl"><span class="tag"><span class="tally on" id="heroTally"></span><span id="heroState">СТАРТ</span></span><span class="tag hide-sm" id="heroShot">Восемь планов</span></div>
+            <div class="hud__tr"><span class="tag" id="heroRung"><span class="chip" style="--c:var(--q2)"></span>—</span></div>
+          </div>
+          <div class="stall" id="heroStall"><div class="stall__ring"></div></div>
+        </div>
+        <div class="umd"><span class="tally on" aria-hidden="true"></span><span class="lbl">ПЛЕЕР</span><span id="heroUmd">ждём первый сегмент</span><span class="v" id="heroTc" style="font-weight:500;color:var(--text)">00:00:00:00</span></div>
+      </div>
+      <div class="scrub" id="heroScrub" aria-hidden="true"><canvas></canvas></div>
+    </div>
+
+    <aside class="telemetry">
+      <div class="panel">
+        <dl class="kv" id="heroKv">
+          <dt>Качество</dt><dd id="kvRung">—</dd>
+          <dt>Битрейт</dt><dd id="kvBitrate">—</dd>
+          <dt>Оценка сети</dt><dd id="kvEst">—</dd>
+          <dt>Ёмкость сети</dt><dd id="kvCap">—</dd>
+          <dt>Буфер</dt><dd id="kvBuf">—</dd>
+          <dt>Старт</dt><dd id="kvTtff">—</dd>
+          <dt>Остановки</dt><dd id="kvStalls">—</dd>
+          <dt>Скачано</dt><dd id="kvBytes">—</dd>
+          <dt>Кодек</dt><dd id="kvCodec">—</dd>
+        </dl>
+        <div class="meter" style="margin-top:12px" aria-hidden="true"><i id="kvBufMeter"></i></div>
+      </div>
+      <div class="panel" style="padding:12px 12px 8px">
+        <div class="fig__canvas" style="height:132px" id="heroChart"></div>
+        <div class="legend" style="margin-top:6px"><span><i style="--c:var(--blue)"></i>сеть</span><span><i style="--c:var(--amber)"></i>буфер</span><span><i style="--c:var(--text)"></i>качество</span></div>
+      </div>
+      <div class="stack" style="gap:10px">
+        <span class="ctl-label">Сеть зрителя</span>
+        <div id="heroNet"></div>
+        <span class="ctl-label">Алгоритм ABR</span>
+        <div id="heroAlgo"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="stack" style="margin-top:14px">
+    <div class="mv" id="heroMv"></div>
+    <p class="caption" id="heroCaption">Контрольные мониторы: каждое качество декодируется отдельно и&nbsp;показывает тот же кадр. Красный индикатор горит у&nbsp;того, что сейчас смотрит плеер. Профиль зрителя&nbsp;— телевизор 4K; стартовая оценка сети&nbsp;— 3&nbsp;Мбит/с, как будто сохранилась с&nbsp;прошлого сеанса.</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<section class="chapter" id="master" aria-labelledby="h-master">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">01</span> · Мастер</div>
+      <h2 id="h-master">Сырой кадр весит гигабиты</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="masterText"></div>
+      <div class="fig" id="fig-master"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="shots" aria-labelledby="h-shots">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">02</span> · Планы и ферма</div>
+      <h2 id="h-shots">Фильм режут на планы</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="shotsText"></div>
+      <div class="fig" id="fig-shots"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="codec" aria-labelledby="h-codec">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">03</span> · Кодек</div>
+      <h2 id="h-codec">Кодек передаёт только новое</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="codecText"></div>
+      <div class="fig" id="fig-codec"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="ladder" aria-labelledby="h-ladder">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">04</span> · Лесенка</div>
+      <h2 id="h-ladder">Своя лесенка для каждого плана</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="ladderText"></div>
+      <div class="fig" id="fig-ladder"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="pack" aria-labelledby="h-pack">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">05</span> · Упаковка и&nbsp;защита</div>
+      <h2 id="h-pack">Байты, ключи и&nbsp;манифесты</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="packText"></div>
+      <div class="fig" id="fig-pack"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="cdn" aria-labelledby="h-cdn">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">06</span> · Раздача</div>
+      <h2 id="h-cdn">Ближе к&nbsp;зрителю</h2>
+    </div>
+    <div class="stack-l">
+      <div class="prose" id="cdnText"></div>
+      <div class="fig" id="fig-cdn"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="player" aria-labelledby="h-player">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">07</span> · Плеер</div>
+      <h2 id="h-player">Четыре алгоритма, одна сеть</h2>
+    </div>
+    <div class="stack-l">
+      <div class="chapter__grid split">
+        <div class="prose" id="playerText"></div>
+        <div class="stack" id="playerAside"></div>
+      </div>
+      <div class="fig" id="fig-race"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="tv" aria-labelledby="h-tv">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">08</span> · Смарт‑ТВ</div>
+      <h2 id="h-tv">Главный экран — телевизор</h2>
+    </div>
+    <div class="stack-l">
+      <div class="prose" id="tvText"></div>
+      <div class="fig" id="fig-tv"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="live" aria-labelledby="h-live">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">09</span> · Прямой эфир</div>
+      <h2 id="h-live">Кто первым увидит гол</h2>
+    </div>
+    <div class="chapter__grid split">
+      <div class="side prose" id="liveText"></div>
+      <div class="fig" id="fig-live"></div>
+    </div>
+  </div>
+</section>
+
+<section class="chapter" id="scale" aria-labelledby="h-scale">
+  <div class="wrap">
+    <div class="chapter__head">
+      <div class="eyebrow"><span class="n">10</span> · Масштаб</div>
+      <h2 id="h-scale">Когда смотрят все</h2>
+    </div>
+    <div class="stack-l">
+      <div class="prose" id="scaleText"></div>
+      <div class="fig" id="fig-scale"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap stack-l">
+    <div class="chapter__head" style="margin:0">
+      <div class="eyebrow">Источники</div>
+      <h3>На что опирается страница</h3>
+    </div>
+    <ol class="sources" id="sources"></ol>
+    <p class="caption">Сервис и&nbsp;фильм на&nbsp;странице вымышленные. Модели сети и&nbsp;CDN упрощены и&nbsp;подписаны как модели; кодирование, упаковка, шифрование и&nbsp;декодирование выполняются по‑настоящему в&nbsp;вашем браузере.</p>
+    <p class="caption">Собрано Claude Opus&nbsp;5.5 в&nbsp;сентябре 2026&nbsp;года: код, фильм, тексты и&nbsp;проверки. Исходники&nbsp;— <a href="https://github.com/sergbell/frame-journey" target="_blank" rel="noopener">github.com/sergbell/frame-journey</a>.</p>
+  </div>
+</footer>
+
+<script src="js/00-util.js"></script>
+<script src="js/01-charts.js"></script>
+<script src="js/02-sources.js"></script>
+<script src="js/10-film.js"></script>
+<script src="js/20-farm.js"></script>
+<script src="js/30-net.js"></script>
+<script src="js/31-abr.js"></script>
+<script src="js/32-player.js"></script>
+<script src="js/33-devices.js"></script>
+<script src="js/22-mp4.js"></script>
+<script src="js/23-h264.js"></script>
+<script src="js/40-cdn.js"></script>
+<script src="js/50-hero.js"></script>
+<script src="js/51-master.js"></script>
+<script src="js/52-shots.js"></script>
+<script src="js/53-codec.js"></script>
+<script src="js/54-ladder.js"></script>
+<script src="js/55-package.js"></script>
+<script src="js/56-cdn.js"></script>
+<script src="js/57-race.js"></script>
+<script src="js/58-tv.js"></script>
+<script src="js/59-live.js"></script>
+<script src="js/60-scale.js"></script>
+<script src="js/99-main.js"></script>
+</body>
+</html>

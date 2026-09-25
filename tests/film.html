@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>film test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans+Extra+Condensed:wght@600;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Handjet:wght@400;600&display=swap">
+<style>body{margin:0;background:#111;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px}canvas{width:100%;display:block}div{color:#aaa;font:11px monospace}</style>
+<script src="../js/00-util.js"></script><script src="../js/01-charts.js"></script><script src="../js/10-film.js"></script>
+<script>
+(async()=>{
+  await FJ.film.init();
+  const frames = (new URLSearchParams(location.search).get('f')||'').split(',').filter(Boolean).map(Number);
+  const list = frames.length? frames : [12, 60, 96, 170, 250, 400, 560, 700, 900, 1060, 1200, 1400, 1440, 1500, 1520, 1535];
+  const t0=performance.now();
+  for (const i of list){
+    FJ.film.render(i);
+    const c=document.createElement('canvas'); c.width=640; c.height=360; c.getContext('2d').drawImage(FJ.film.canvas,0,0,640,360);
+    const d=document.createElement('div'); d.append(c, i+' · '+FJ.film.shotAt(i).name); document.body.append(d);
+  }
+  // timing: render 48 frames of each GL shot
+  const tm={};
+  for (const s of FJ.film.shots){ const a=performance.now(); for(let k=0;k<24;k++) FJ.film.render(s.f0+k); FJ.film.canvas.getContext('2d').getImageData(0,0,1,1); tm[s.id]=((performance.now()-a)/24).toFixed(2); }
+  window.RESULT={glOk:FJ.film.glOk, ms:tm, total:(performance.now()-t0).toFixed(0)};
+})().catch(e=>{window.RESULT={err:e.message+' '+e.stack}});
+</script>
